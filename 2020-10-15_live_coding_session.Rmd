@@ -1,0 +1,192 @@
+---
+title: "Analisis de datos de transporte"
+author: "Jurguen Bermudez Mora"
+date: "10/16/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Dependencias 
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(skimr)
+library(plotly)
+library(scales)
+library(GGally)
+library(factoextra)
+```
+
+# Cargandos los datos 
+
+```{r}
+datos_crudos <- read_csv(url("https://aresep.go.cr/exportar/csv.php?url=aHR0cDovL2FwcHMuYXJlc2VwLmdvLmNyL3dzLmRhdG9zYWJpZXJ0b3MvU2VydmljZXMvSVQvQXV0b2J1cy5zdmMvT2J0ZW5lckVzdGFkaXN0aWNhc0F1dG9idXNlcy8yMDIw&n=X1Bhc2FqZXJvc19tb3ZpbGl6YWRvcw=="))
+```
+
+
+```{r}
+datos_pro <- datos_crudos %>% 
+  select(-c("pasajeroEquivalente", "pasajerosTotal")) %>% 
+  clean_names()
+```
+
+# Resumen estadisticas 
+
+```{r}
+datos_pro %>% skim()
+```
+
+# Graficos exploratorios 
+
+```{r}
+datos_pro %>% 
+  filter(nombre_operador %in% sample(unique(datos_pro$nombre_operador),5)) %>% 
+  group_by(nombre_operador, mes) %>% 
+  summarise(carreras = sum(carreras)) %>% 
+  ggplot(aes(x = mes, y = carreras, color = nombre_operador)) +
+  geom_line()
+```
+
+# Crear un data set donde la data este completa 
+
+```{r}
+nombre_operador <- unique(datos_pro$nombre_operador)
+mes <- unique(datos_pro$mes)
+
+combinaciones <- expand.grid(nombre_operador, mes) %>% 
+  rename(nombre_operador = Var1, mes = Var2) 
+
+
+operadores_incompletos <- combinaciones %>% 
+  left_join(datos_pro, c("nombre_operador", "mes")) %>% 
+  filter(is.na(cedula)) %>% 
+  pull(nombre_operador) %>% unique()
+operadores_incompletos
+```
+
+# Creando dataset con data completa
+
+```{r}
+datos_completos <- datos_pro %>% 
+  filter(!nombre_operador %in% operadores_incompletos) 
+
+```
+
+
+```{r}
+sum_datos_completos <- datos_completos %>% 
+  group_by(nombre_operador,mes) %>% 
+  summarise(pasajeros_adulto_mayor  = sum(pasajeros_adulto_mayor),
+            pasajeros_regulares = sum(pasajeros_regulares),
+            carreras = sum(carreras),
+            ingresos = sum(ingresos),
+            total_pasajeros = sum(pasajeros_adulto_mayor, pasajeros_regulares))
+
+
+```
+
+# Graficos con los datos completos 
+
+```{r}
+grafico_carreras <- sum_datos_completos %>%
+  ggplot(aes(x = mes, y = carreras, color = nombre_operador)) +
+  geom_line(show.legend = FALSE) + 
+  scale_x_continuous(breaks = seq(1,9,1)) + 
+  geom_vline(xintercept = 4, color = "red", lty = 2) +
+  geom_vline(xintercept = 7, color = "red", lty = 2) +
+  labs(title = "Cantidad de carreras en datos del 2020")
+
+plotly::ggplotly(grafico_carreras)
+  
+```
+
+
+```{r}
+grafico_total_pasajeros <- sum_datos_completos %>%
+  ggplot(aes(x = mes, y = total_pasajeros, color = nombre_operador)) +
+  geom_line(show.legend = FALSE) + 
+  scale_x_continuous(breaks = seq(1,9,1)) + 
+  geom_vline(xintercept = 4, color = "red", lty = 2) +
+  geom_vline(xintercept = 7, color = "red", lty = 2) +
+  labs(title = "Cantidad de total pasajeros en datos del 2020")
+
+plotly::ggplotly(grafico_total_pasajeros)
+```
+
+
+
+# Graficando cambios porcentuales 
+
+```{r}
+sum_datos_completos %>% 
+  mutate(cambio_carreras = carreras/first(carreras) -1) %>%
+  ggplot(aes(x = mes, y = cambio_carreras)) + 
+  geom_line() + 
+  scale_x_continuous(breaks = seq(1,9,1)) + 
+  geom_vline(xintercept = 4, color = "red", lty = 2) +
+  geom_vline(xintercept = 7, color = "red", lty = 2) +
+  facet_wrap(~nombre_operador) + 
+  scale_y_continuous(labels = percent) +
+  labs(title = "Cambio porcentual de carreas en operadores") + 
+  theme(strip.text = element_text(size = 7))
+```
+
+
+
+
+# Eleccion caracteristicas 
+
+
+
+
+```{r}
+datos_cluster <- datos_completos %>% 
+  group_by(nombre_operador) %>% 
+  summarise(pasajeros_adulto_mayor  = sum(pasajeros_adulto_mayor),
+            pasajeros_regulares = sum(pasajeros_regulares),
+            carreras = sum(carreras),
+            ingresos = sum(ingresos),
+            total_pasajeros = sum(pasajeros_adulto_mayor, pasajeros_regulares))
+```
+
+# Grafico de correlacion 
+
+```{r}
+datos_cluster[,-1] %>% ggpairs()
+```
+
+
+
+```{r}
+cluster_ma <- datos_cluster[,-1] %>% as.matrix()
+
+rownames(cluster_ma) <- datos_cluster$nombre_operador
+```
+
+# Seleccionando el numero de grupos
+
+```{r}
+fviz_nbclust(cluster_ma,kmeans, method= "wss")
+```
+
+
+```{r}
+k1 <- kmeans(cluster_ma, centers = 3, nstart = 25)
+
+```
+
+```{r}
+fviz_cluster(k1, data = cluster_ma)
+```
+
+
+# Lecciones aprendidas 
+
+* Dataset esta sucio por falta de datos en meses 
+* Las carreras y los ingresos bajan en los mese 4 y 7. 
+* El cambio porcentual de las carreras no siempre responde a los meses 4 y 7. 
+* A grandes rasgos hay tres grupos de operadores basados en ingresos y carreras. 
