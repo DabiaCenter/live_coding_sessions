@@ -1,0 +1,88 @@
+---
+title: "Dashboard Ventas"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(readxl)
+library(plotly)
+library(DT)
+library(tidyverse)
+
+datos = read_xlsx('datos.xlsx')
+```
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Ventas vs Tiempo
+
+```{r}
+df_ts <- datos %>%
+  group_by(FECHA,NOMBRE) %>%
+  summarise(Ventas = sum(VENTA)) %>%
+  spread(NOMBRE, Ventas)
+
+fig <- plot_ly(x = df_ts$FECHA, y = df_ts$LUIS, name = 'Luis', type = 'scatter', mode = 'lines+markers') 
+
+fig <- fig %>% add_trace(y = df_ts$MANUEL, name = 'Manuel', mode = 'lines+markers') 
+
+fig <- fig %>% add_trace(y = df_ts$SOFIA, name = 'Sofia', mode = 'lines+markers') 
+
+fig <- fig %>% layout(title = "Ventas vs Tiempo",
+         xaxis = list(title = "Fecha"),
+         yaxis = list (title = "Ventas"))
+
+fig
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Tabla comparativa cantidad vendida por familia de producto
+
+```{r}
+df_dt <- datos %>%
+  group_by(`FAMILIA PRODUCTO`, NOMBRE) %>%
+  summarise(Cantidad = sum(CANTIDAD)) %>%
+  spread(NOMBRE, Cantidad)
+  
+datatable(df_dt, extensions = 'Buttons', options = list(
+    dom = 'Bfrtip',
+    buttons = c('csv', 'excel')
+  )) %>%
+formatStyle(
+    'LUIS',
+    backgroundColor = styleInterval(3000, c('red', 'normal'))
+  ) %>%
+formatStyle(
+    'MANUEL',
+    backgroundColor = styleInterval(3000, c('red', 'normal'))
+  ) %>%  
+formatStyle(
+    'SOFIA',
+    backgroundColor = styleInterval(3000, c('red', 'normal'))
+  )
+```
+
+### Porcentaje de ventas por familia de producto
+
+```{r}
+
+df_pie <- datos %>%
+  group_by(`FAMILIA PRODUCTO`) %>%
+  summarise(ventas = sum(VENTA))
+
+fig <- plot_ly(labels = df_pie$`FAMILIA PRODUCTO`, values = df_pie$ventas, type = 'pie')
+
+fig <- fig %>% layout(title = 'Porcentaje de ventas por familia de producto')
+
+fig
+#fig
+
+```
+
