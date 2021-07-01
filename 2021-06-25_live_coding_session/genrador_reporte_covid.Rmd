@@ -1,0 +1,316 @@
+---
+title: "Actualizacion del avance del Covid-19 en Costa Rica"
+author: "Bryan Rodriguez Murillo"
+date: '`r format(Sys.Date(), "%d/%m/%Y")`'
+output: html_document
+---
+
+ 
+
+```{r setup, include=FALSE}
+
+library(crosstalk)
+
+#library(crosstool)
+
+library(dplyr)
+
+library(plotly)
+
+library(tidyverse)
+
+ 
+
+data_final <- readRDS(file = "data_final.RDS")
+
+ 
+
+shared_data <- SharedData$new(data_final)
+
+ 
+
+```
+
+ 
+
+### Descargo por ortorafia
+
+ 
+
+ 
+
+ 
+
+## Introduccion
+
+ 
+
+Este reporte consiste en una actualizacion de la evolucion de las estadisticas mas relevantes de la pandemia del Covid-19 en Costa Rica.
+
+ 
+
+En este reporte se muestra los siguientes datos a lo largo del tiempo (del inicio de la pandemia hasta hoy):
+
+ 
+
+1. Nuevos casos positivos  y el total de contagiados
+
+2. Nuevos recuperaciones  y el total de personas recuperadas
+
+3. Nuevos fellecimientos y el total de personas fallecidas
+
+4. Porcentaje de positivos por género, respecto al total
+
+7. Porcentaje de positivos por grupo etario, respecto al total
+
+8. Porcentaje de recuperados por grupo etario, respecto al total
+
+9. Porcentaje de fallecidos por grupo etario, respecto al total
+
+ 
+
+## Datos
+
+ 
+
+Al día del reporta, esta es la evolución del COVID-19 en Costa Rica.
+
+ 
+
+<center>
+
+ 
+
+```{r datos, echo = FALSE, warning = FALSE}
+
+ 
+
+#i <- data_final %>%
+
+#  mutate(rowid = rownames(data_final)) %>%
+
+#  filter(poblacion == "positivos") %>%
+
+#  select(rowid) %>%
+
+#  unlist(use.names = FALSE)
+
+#
+
+#tx = crosstool(shared_data, "transceiver", init = i, channel="filter", reset = #rownames(data_final))
+
+ 
+
+bscols(
+
+  filter_slider("fechas", "Rango de fechas:", shared_data, ~fecha, width = "100%"),
+
+  filter_checkbox("poblaciones", "Poblaciones:", shared_data, ~poblacion, inline = TRUE)
+
+)
+
+ 
+
+bscols(list(shared_data %>%
+
+plot_ly() %>%
+
+add_trace(x = ~fecha, y = ~nue, type = 'bar',
+
+          name = "Nuevos",
+
+          marker = list(color = 'rgb(252,130,126)',
+
+                        line = list(color = 'rgb(89,90,88)'))) %>%
+
+add_trace(x = ~fecha, y = ~total, type = 'bar',
+
+          name = "Totales",
+
+          marker = list(color = 'rgb(212,40,26)',
+
+                        line = list(color = 'rgb(89,90,88)'))) %>%
+
+config(displayModeBar = F) %>%
+
+layout(title = "Evolución de Casos",
+
+       barmode = 'group',
+
+       xaxis = list(title = "",
+
+                    fixedrange = TRUE),
+
+       #yaxis = list(title = "Cant. Casos")), tx))
+
+       yaxis = list(title = "Cant. Casos",
+
+                    fixedrange = TRUE))))
+
+ 
+
+shared_data %>%
+
+  plot_ly() %>%
+
+  add_trace(x = ~fecha, y = ~muj, type = 'bar',
+
+            name = "Mujeres",
+
+            marker = list(color = 'rgb(133,76,70)')) %>%
+
+  add_trace(x = ~fecha, y = ~hom, type = 'bar',
+
+            name = "Hombres",
+
+            marker = list(color = 'rgb(188,183,183)')) %>%
+
+config(displayModeBar = F) %>%
+
+  layout(title = "Distribución del Total: Mujeres vs Hombres",
+
+         barmode = 'stack',
+
+         xaxis = list(title = "",
+
+                    fixedrange = TRUE),
+
+         yaxis = list(title = "% del Total de Casos",
+
+                    fixedrange = TRUE))
+
+ 
+
+bscols(
+
+  shared_data %>%
+
+  plot_ly() %>%
+
+  add_trace(x = ~fecha, y = ~extranj, type = 'bar',
+
+            name = "Extranjeros",
+
+            marker = list(color = 'rgb(36,216,4)')) %>%
+
+  add_trace(x = ~fecha, y = ~costar, type = 'bar',
+
+            name = "Nacionales",
+
+            marker = list(color = 'rgb(249,240,38)')) %>%
+
+config(displayModeBar = F) %>%
+
+  layout(title = "Distribución del Total: Nacionales vs Extranjeros",
+
+         barmode = 'stack',
+
+         xaxis = list(title = "",
+
+                    fixedrange = TRUE),
+
+         yaxis = list(title = "% del Total de Casos",
+
+                    fixedrange = TRUE)),
+
+  shared_data %>%
+
+  plot_ly() %>%
+
+  add_trace(x = ~fecha, y = ~adul, type = 'bar',
+
+            name = "Adultos",
+
+            marker = list(color = 'rgb(55,223,223)')) %>%
+
+  add_trace(x = ~fecha, y = ~am, type = 'bar',
+
+            name = "Adultos mayores",
+
+            marker = list(color = 'rgb(25,79,249)')) %>%
+
+  add_trace(x = ~fecha, y = ~menor, type = 'bar',
+
+            name = "Menores de edad",
+
+            marker = list(color = 'rgb(203,23,198)')) %>%
+
+  add_trace(x = ~fecha, y = ~eda_ignor, type = 'bar',
+
+            name = "Sin edad registrada",
+
+            marker = list(color = 'rgb(239,29,115)')) %>%
+
+config(displayModeBar = F) %>%
+
+  layout(title = "Distribución del Total por Grupos etarios",
+
+         barmode = 'stack',
+
+         xaxis = list(title = "",
+
+                    fixedrange = TRUE),
+
+         yaxis = list(title = "% del Total de Casos",
+
+                    fixedrange = TRUE))
+
+)
+
+ 
+
+ 
+
+```
+
+ 
+
+</center>
+
+ 
+
+## Fuente
+
+ 
+
+La fuentes de la datos es [la pagina de Geovision y la UNED de este enlace](https://geovision.uned.ac.cr/oges/)
+
+## Notas respecto a Crosstalk
+
+ 
+
+Este paquete permite crear reportes interactivos en RMarkdown, en conjunto con algunos "htmlwidgets":
+
+ 
+
+* d3scatter
+
+* **plotly**
+
+* DT
+
+* leaflet
+
+* **summaryWidget**
+
+* rgl
+
+ 
+
+En este reporte se emplearan los marcados en negrita.
+
+ 
+
+"Crosstalk" es un paquete muy limitado. Solo es recomendable usar esta opcion si:
+
+ 
+
+* No es posible emplear Shiny (por ejemplo: no se cuenta con un servidor privado y por seguridad informática no es posible usar uno público)
+
+* Todos los datos a reportar pueden consolidarse en una sola tabla
+
+* La visualizacion de datos no es muy compleja
+
+ 
+
+De incumplirse lo anterior y no poder optar por graficos y tablas estaticas (ggplot2, kabbleExtra, etc), lo más recomendable **es optar por otro software de Bussines Inteligence** (por ejemplo: Power BI o Tableu).
